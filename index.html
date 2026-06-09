@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BOX OFFICE - Premium dynamic movie information, reviews, trailers, ratings, and real-time box office collections. Powered by TMDB & OMDB.">
+  <title>BOX OFFICE | Cinematic Movie & Box Office Platform</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#FF6B00',
+              secondary: '#FF8C42',
+              accent: '#FFA726',
+              darkBg: '#0F0F0F',
+              cardBg: '#1A1A1A',
+              textPrimary: '#FFFFFF',
+              textSecondary: '#BDBDBD'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Swiper JS Styles -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
+  <!-- AOS Animation Styles -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" />
+
+  <!-- Custom CSS style overrides -->
+  <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="bg-[#0F0F0F] text-white overflow-x-hidden">
+
+  <!-- STICKY HEADER -->
+  <header class="fixed top-0 left-0 w-full z-40 transition-all duration-300 glass-nav">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
+      
+      <!-- LOGO -->
+      <a href="#home" class="flex items-center space-x-2 text-[#FF6B00]">
+        <i data-lucide="clapperboard" class="w-8 h-8 stroke-[2.5] text-glow-orange animate-pulse"></i>
+        <span class="text-2xl font-black tracking-wider font-heading uppercase text-white">BOX <span class="text-[#FF6B00]">OFFICE</span></span>
+      </a>
+
+      <!-- DESKTOP NAVIGATION -->
+      <nav class="hidden lg:flex items-center space-x-8 text-sm font-semibold tracking-wide">
+        <a href="#home" class="nav-link text-white hover:text-[#FF6B00] transition duration-200">Home</a>
+        <a href="#movies" class="nav-link text-white hover:text-[#FF6B00] transition duration-200">Movies</a>
+        <a href="#box-office" class="nav-link text-white hover:text-[#FF6B00] transition duration-200">Box Office</a>
+        <a href="#ott" class="nav-link text-white hover:text-[#FF6B00] transition duration-200">OTT Releases</a>
+        <a href="#about" class="nav-link text-white hover:text-[#FF6B00] transition duration-200">About</a>
+      </nav>
+
+      <!-- RIGHT HEADER ACTIONS -->
+      <div class="hidden lg:flex items-center space-x-4">
+        <!-- Search bar inside header -->
+        <form id="global-search-form" class="relative">
+          <input type="text" id="global-search-input" placeholder="Search movies..." class="bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-2 text-xs focus:outline-none focus:border-[#FF6B00] w-48 focus:w-64 transition-all duration-300 text-white">
+          <button type="submit" class="absolute right-3 top-2.5 text-gray-400 hover:text-[#FF6B00] transition">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </button>
+          
+          <!-- Suggestions Dropdown -->
+          <div id="search-suggestions" class="absolute top-12 left-0 w-full bg-[#1A1A1A] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden hidden"></div>
+        </form>
+
+        <!-- Compare counter badge trigger -->
+        <button onclick="document.getElementById('comparison-sidebar').classList.remove('translate-x-full')" class="relative p-2 text-gray-300 hover:text-[#FF6B00] transition" title="Compare Movies">
+          <i data-lucide="columns" class="w-5 h-5"></i>
+          <span id="compare-count-badge" class="absolute -top-1 -right-1 bg-[#FF6B00] text-white font-bold text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#0F0F0F]">0</span>
+        </button>
+      </div>
+
+      <!-- MOBILE NAV TOGGLE -->
+      <div class="flex items-center space-x-4 lg:hidden">
+        <button id="mobile-menu-btn" class="p-2 text-white hover:text-[#FF6B00] transition">
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- MOBILE MENU DRAWER -->
+    <div id="mobile-menu" class="hidden lg:hidden bg-[#0F0F0F]/95 border-b border-white/5 py-4 px-6 space-y-4">
+      <form id="global-search-form-mobile" onsubmit="event.preventDefault(); window.location.hash='#movies'; appState.activeFilters.query=document.getElementById('global-search-input-mobile').value; applyMovieFilters();" class="relative w-full">
+        <input type="text" id="global-search-input-mobile" placeholder="Search movies..." class="bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-2.5 text-sm w-full focus:outline-none focus:border-[#FF6B00] text-white">
+        <button type="submit" class="absolute right-3 top-3.5 text-gray-400 hover:text-[#FF6B00]">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </button>
+      </form>
+      <div class="flex flex-col space-y-3 font-semibold text-base">
+        <a href="#home" class="mobile-nav-link text-white py-2 block">Home</a>
+        <a href="#movies" class="mobile-nav-link text-white py-2 block">Movies</a>
+        <a href="#box-office" class="mobile-nav-link text-white py-2 block">Box Office</a>
+        <a href="#ott" class="mobile-nav-link text-white py-2 block">OTT Releases</a>
+        <a href="#about" class="mobile-nav-link text-white py-2 block">About</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- PAGE VIEW MODULES (SPA CONTAINERS) -->
+  <!-- ---------------------------------------------------- -->
+
+  <!-- 1. HOME VIEW -->
+  <section id="view-home" class="app-view active">
+    
+    <!-- Hero Slider -->
+    <div class="hero-swiper swiper w-full min-h-[85vh] bg-[#0F0F0F]">
+      <div class="swiper-wrapper" id="hero-swiper-wrapper">
+        <!-- Hero Slides dynamically injected here -->
+      </div>
+      <!-- Hero Swiper Controls -->
+      <div class="hero-pagination absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex space-x-2"></div>
+      <div class="hero-prev swiper-button-prev !hidden md:!flex !left-8"></div>
+      <div class="hero-next swiper-button-next !hidden md:!flex !right-8"></div>
+    </div>
+
+    <!-- Trending Movies Slider -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div class="flex justify-between items-center mb-8" data-aos="fade-up">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-black font-heading text-white">Trending This Week</h2>
+          <p class="text-xs md:text-sm text-gray-400 mt-1">Discover the most popular movies around the world</p>
+        </div>
+        <div class="flex space-x-2">
+          <div class="trending-prev swiper-button-prev !static !w-10 !height-10 !h-10"></div>
+          <div class="trending-next swiper-button-next !static !w-10 !height-10 !h-10"></div>
+        </div>
+      </div>
+      <div class="trending-swiper swiper" data-aos="fade-up">
+        <div class="swiper-wrapper" id="trending-carousel-wrapper">
+          <!-- Slide cards loaded dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Box Office Snapshot -->
+    <div class="bg-gradient-to-r from-[#1A1A1A] to-[#0F0F0F] border-y border-white/5 py-16">
+      <div class="max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-3 gap-8">
+        <div class="bg-[#1A1A1A]/80 border border-white/5 p-8 rounded-xl flex items-center space-x-6 relative overflow-hidden group hover:border-[#FF6B00]/40 transition duration-300" data-aos="fade-up">
+          <div class="bg-[#FF6B00]/10 p-4 rounded-lg text-[#FF6B00] border border-[#FF6B00]/20">
+            <i data-lucide="globe" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold tracking-wider text-gray-400 uppercase">Worldwide Collections</h3>
+            <p id="stat-worldwide" class="text-2xl md:text-3xl font-black font-heading text-white mt-1 text-glow-orange">$0</p>
+          </div>
+          <span class="absolute -right-5 -bottom-5 text-white/5 w-20 h-20 font-bold text-7xl select-none font-heading">W</span>
+        </div>
+        <div class="bg-[#1A1A1A]/80 border border-white/5 p-8 rounded-xl flex items-center space-x-6 relative overflow-hidden group hover:border-[#FF8C42]/40 transition duration-300" data-aos="fade-up" data-aos-delay="100">
+          <div class="bg-[#FF8C42]/10 p-4 rounded-lg text-[#FF8C42] border border-[#FF8C42]/20">
+            <i data-lucide="landmark" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold tracking-wider text-gray-400 uppercase">Domestic Market</h3>
+            <p id="stat-domestic" class="text-2xl md:text-3xl font-black font-heading text-white mt-1 text-glow-gold">$0</p>
+          </div>
+          <span class="absolute -right-5 -bottom-5 text-white/5 w-20 h-20 font-bold text-7xl select-none font-heading">D</span>
+        </div>
+        <div class="bg-[#1A1A1A]/80 border border-white/5 p-8 rounded-xl flex items-center space-x-6 relative overflow-hidden group hover:border-[#FFA726]/40 transition duration-300" data-aos="fade-up" data-aos-delay="200">
+          <div class="bg-[#FFA726]/10 p-4 rounded-lg text-[#FFA726] border border-[#FFA726]/20">
+            <i data-lucide="plane-takeoff" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold tracking-wider text-gray-400 uppercase">International Market</h3>
+            <p id="stat-international" class="text-2xl md:text-3xl font-black font-heading text-white mt-1">$0</p>
+          </div>
+          <span class="absolute -right-5 -bottom-5 text-white/5 w-20 h-20 font-bold text-7xl select-none font-heading">I</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Now Playing Grid -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div class="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4" data-aos="fade-up">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-black font-heading text-white">Now Playing</h2>
+          <p class="text-xs md:text-sm text-gray-400 mt-1">In theatres near you</p>
+        </div>
+        
+        <!-- Regional Filters Tabs -->
+        <div class="flex bg-[#1A1A1A] p-1 rounded-lg border border-white/5 self-start md:self-auto">
+          <button id="np-tab-all" onclick="switchNowPlayingLang('all', this)" class="now-playing-tab px-4 py-1.5 rounded-md text-xs font-bold bg-[#FF6B00] text-white transition">Global</button>
+          <button id="np-tab-te" onclick="switchNowPlayingLang('te', this)" class="now-playing-tab px-4 py-1.5 rounded-md text-xs font-bold text-gray-400 hover:text-white transition">Tollywood</button>
+          <button id="np-tab-hi" onclick="switchNowPlayingLang('hi', this)" class="now-playing-tab px-4 py-1.5 rounded-md text-xs font-bold text-gray-400 hover:text-white transition">Bollywood</button>
+        </div>
+        
+        <a href="#movies" class="hidden md:flex text-sm font-semibold text-[#FF8C42] hover:text-[#FF6B00] transition items-center space-x-1">
+          <span>View All Movies</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+      <div id="now-playing-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Interactive Highlights Feature -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-8" data-aos="fade-up">
+      <div class="bg-[#1A1A1A] rounded-2xl p-8 border border-white/5 bg-cover bg-center flex flex-col md:flex-row md:items-center md:justify-between space-y-6 md:space-y-0 relative overflow-hidden" style="background-image: linear-gradient(to right, rgba(15,15,15,0.95), rgba(15,15,15,0.8)), url('https://images.unsplash.com/photo-1461360370896-922624d12aa1?q=80&w=800&auto=format&fit=crop');">
+        <div class="space-y-3 z-10">
+          <span class="text-xs px-2.5 py-1 bg-[#FF6B00]/10 border border-[#FF6B00]/30 rounded-full text-[#FF6B00] font-bold">CINEMATIC INSIGHTS</span>
+          <h2 class="text-2xl md:text-3xl font-black font-heading text-white leading-tight">Explore In-Depth Box Office Collections</h2>
+          <p class="text-sm text-gray-300 max-w-xl">Deep dive into opening weekend numbers, domestic/international splits, and analytical weekly collection trends for the top performers.</p>
+        </div>
+        <a href="#box-office" class="bg-[#FF6B00] hover:bg-[#FF8C42] text-white font-bold px-8 py-3 rounded-lg z-10 transition shadow-lg text-center shadow-[#FF6B00]/30">Explore Charts</a>
+      </div>
+    </div>
+
+    <!-- Top Rated Section -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div class="flex justify-between items-end mb-8" data-aos="fade-up">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-black font-heading text-white">Top Rated Movies</h2>
+          <p class="text-xs md:text-sm text-gray-400 mt-1">Acclaimed titles that earned cinematic benchmarks</p>
+        </div>
+        <a href="#movies" class="text-sm font-semibold text-[#FF8C42] hover:text-[#FF6B00] transition flex items-center space-x-1">
+          <span>Explore All</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+      <div id="top-rated-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Upcoming releases section with Countdown -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div class="mb-8" data-aos="fade-up">
+        <h2 class="text-2xl md:text-3xl font-black font-heading text-white">Upcoming Releases</h2>
+        <p class="text-xs md:text-sm text-gray-400 mt-1">Anticipate these theatrical blockbuster announcements</p>
+      </div>
+      <div id="upcoming-grid" class="grid md:grid-cols-2 gap-6">
+        <!-- Dynamically loaded -->
+      </div>
+    </div>
+
+    <!-- Popular Actors Showcase -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16">
+      <div class="mb-8" data-aos="fade-up">
+        <h2 class="text-2xl md:text-3xl font-black font-heading text-white">Trending Celebrities</h2>
+        <p class="text-xs md:text-sm text-gray-400 mt-1">Actors currently capturing headlines and critical praise</p>
+      </div>
+      <div id="actors-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        <!-- Dynamic actor profile cards -->
+      </div>
+    </div>
+
+    <!-- OTT Releases Container -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16 space-y-8">
+      <div class="flex justify-between items-end" data-aos="fade-up">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-black font-heading text-white">OTT Releases</h2>
+          <p class="text-xs md:text-sm text-gray-400 mt-1">Digital streaming schedules across major providers</p>
+        </div>
+        <a href="#ott" class="text-sm font-semibold text-[#FF8C42] hover:text-[#FF6B00] transition flex items-center space-x-1">
+          <span>Full List</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+      <div id="ott-grid-home" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+    </div>
+
+    <!-- Newsletter Subscription Form -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16 text-center" data-aos="fade-up">
+      <div class="bg-[#1A1A1A] p-8 md:p-12 rounded-2xl border border-white/5 space-y-6 max-w-3xl mx-auto">
+        <i data-lucide="mail-open" class="w-12 h-12 text-[#FF6B00] mx-auto text-glow-orange animate-bounce"></i>
+        <h2 class="text-3xl font-black font-heading text-white">Subscribe to Newsletters</h2>
+        <p class="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">Stay updated with real-time box office reports, trending trailer notifications, and OTT releases directly in your inbox.</p>
+        <form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onsubmit="event.preventDefault(); showToast('Subscribed to newsletter successfully!', 'success'); this.reset();">
+          <input type="email" required placeholder="Enter your email address" class="bg-[#2A2A2A] border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#FF6B00] flex-1 text-white">
+          <button type="submit" class="bg-[#FF6B00] hover:bg-[#FF8C42] text-white px-8 py-3 rounded-lg font-bold transition shadow-lg shadow-[#FF6B00]/30">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. MOVIES DIRECTORY VIEW -->
+  <section id="view-movies" class="app-view">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-16">
+      
+      <!-- TITLE -->
+      <div class="mb-8" data-aos="fade-up">
+        <h1 class="text-3xl md:text-4xl font-black font-heading text-white">Browse Movie Directory</h1>
+        <p class="text-sm text-gray-400 mt-1">Discover, filter, and compare the blockbusters in our database</p>
+      </div>
+
+      <!-- FILTER PANEL -->
+      <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5 mb-8 grid grid-cols-1 md:grid-cols-5 gap-4" data-aos="fade-up">
+        
+        <!-- Search -->
+        <div class="md:col-span-1 space-y-1.5">
+          <label class="text-xs font-semibold text-gray-400 block uppercase">Search Title</label>
+          <input type="text" id="movie-search-input" placeholder="Keyword..." class="w-full bg-[#2A2A2A] border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FF6B00]">
+        </div>
+
+        <!-- Genres -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-400 block uppercase">Genre</label>
+          <select id="filter-genre" class="w-full bg-[#2A2A2A] border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FF6B00]">
+            <option value="">All Genres</option>
+            <!-- Injected dynamically -->
+          </select>
+        </div>
+
+        <!-- Language -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-400 block uppercase">Language</label>
+          <select id="filter-language" class="w-full bg-[#2A2A2A] border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FF6B00]">
+            <option value="">All Languages</option>
+            <option value="en">English</option>
+            <option value="te">Telugu (Tollywood)</option>
+            <option value="hi">Hindi (Bollywood)</option>
+            <option value="ta">Tamil (Kollywood)</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+          </select>
+        </div>
+
+        <!-- Year -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-400 block uppercase">Release Year</label>
+          <select id="filter-year" class="w-full bg-[#2A2A2A] border border-white/10 rounded-lg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FF6B00]">
+            <option value="">All Years</option>
+            <!-- Injected dynamically -->
+          </select>
+        </div>
+
+        <!-- Rating Slider -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-semibold text-gray-400 uppercase">
+            <span>Min Rating</span>
+            <span id="rating-val-display" class="text-[#FF6B00]">0+</span>
+          </div>
+          <input type="range" id="filter-rating" min="0" max="9.5" step="0.5" value="0" class="w-full h-2 bg-[#2A2A2A] rounded-lg appearance-none cursor-pointer accent-[#FF6B00] mt-3">
+        </div>
+      </div>
+
+      <!-- GRID CONTAINER -->
+      <div id="movies-grid-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. MOVIE DETAILS VIEW -->
+  <section id="view-movie-details" class="app-view">
+    <!-- Hero backdrop component -->
+    <div id="details-hero-section" class="relative min-h-[75vh] flex items-center bg-cover bg-center">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- Main Detail Core Sections -->
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-16 grid lg:grid-cols-12 gap-8 md:gap-12">
+      <!-- Info panels left -->
+      <div class="lg:col-span-8 space-y-12">
+        
+        <!-- Technical Details Grid -->
+        <div id="details-overview-grid" class="grid md:grid-cols-2 gap-6">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Cast section -->
+        <div class="space-y-6">
+          <h2 class="text-2xl font-black font-heading text-white">Principal Cast</h2>
+          <div id="details-cast-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <!-- Dynamic cast cards -->
+          </div>
+        </div>
+
+        <!-- Trailer container -->
+        <div id="details-trailer-section" class="space-y-6 hidden">
+          <h2 class="text-2xl font-black font-heading text-white">Official Video Trailer</h2>
+          <div class="aspect-video w-full">
+            <!-- Dynamic youtube iframe -->
+          </div>
+        </div>
+
+        <!-- Reviews section -->
+        <div id="details-reviews-section" class="space-y-6 hidden">
+          <h2 class="text-2xl font-black font-heading text-white">Audience Reviews</h2>
+          <div class="reviews-wrapper space-y-4">
+            <!-- Dynamic reviews list -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Similar Movies Sidebar Right -->
+      <div class="lg:col-span-4 space-y-8">
+        <h2 class="text-2xl font-black font-heading text-white border-b border-white/5 pb-2">Similar Movies</h2>
+        <div id="details-similar-section" class="grid grid-cols-2 lg:grid-cols-1 gap-6">
+          <!-- Dynamic cards -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. BOX OFFICE VIEW -->
+  <section id="view-box-office" class="app-view">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-16">
+      
+      <!-- Header -->
+      <div class="mb-12" data-aos="fade-up">
+        <h1 class="text-3xl md:text-4xl font-black font-heading text-white">Box Office Collections Analysis</h1>
+        <p class="text-sm text-gray-400 mt-1">Worldwide charts, opening records, weekly trends, and performance reports</p>
+      </div>
+
+      <!-- Key Figures -->
+      <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5" data-aos="fade-up">
+          <span class="text-xs text-gray-400 block font-semibold uppercase tracking-wider">Top Performing Total Year</span>
+          <p id="bo-stat-worldwide" class="text-3xl font-black font-heading text-[#FF6B00] mt-1">$0</p>
+        </div>
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5" data-aos="fade-up" data-aos-delay="100">
+          <span class="text-xs text-gray-400 block font-semibold uppercase tracking-wider">Total Domestic Share</span>
+          <p id="bo-stat-domestic" class="text-3xl font-black font-heading text-white mt-1">$0</p>
+        </div>
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5" data-aos="fade-up" data-aos-delay="200">
+          <span class="text-xs text-gray-400 block font-semibold uppercase tracking-wider">Total International Share</span>
+          <p id="bo-stat-international" class="text-3xl font-black font-heading text-white mt-1">$0</p>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid lg:grid-cols-12 gap-8 mb-16">
+        <!-- SVG Chart Worldwide -->
+        <div class="lg:col-span-6 bg-[#1A1A1A] p-6 rounded-xl border border-white/5 space-y-4" data-aos="fade-up">
+          <div>
+            <h3 class="text-lg font-bold font-heading text-white">Worldwide Collections Breakdown (US Billions)</h3>
+            <p class="text-xs text-gray-400">Total gross earnings across the top blockbusters in our archive</p>
+          </div>
+          <div id="svg-chart-worldwide" class="w-full flex justify-center py-4 bg-neutral-900/30 rounded-lg border border-white/5">
+            <!-- Dynamically injected SVG chart -->
+          </div>
+        </div>
+
+        <!-- SVG Line chart Weekly Collections drop -->
+        <div class="lg:col-span-6 bg-[#1A1A1A] p-6 rounded-xl border border-white/5 space-y-4" data-aos="fade-up">
+          <div>
+            <h3 class="text-lg font-bold font-heading text-white">Weekly Drop-Off Comparison (US Millions)</h3>
+            <p class="text-xs text-gray-400">Box office collections progression from Week 1 to Week 5</p>
+          </div>
+          <div id="svg-chart-weekly" class="w-full flex justify-center py-4 bg-neutral-900/30 rounded-lg border border-white/5">
+            <!-- Dynamic SVG Weekly Line Chart -->
+          </div>
+        </div>
+      </div>
+
+      <!-- High-fidelity tables -->
+      <div class="grid md:grid-cols-12 gap-8 items-start">
+        <div class="md:col-span-6 bg-[#1A1A1A] rounded-xl border border-white/5 p-6 space-y-4" data-aos="fade-up">
+          <h3 class="text-lg font-bold font-heading text-white border-b border-white/5 pb-2">Highest Domestic Grossers</h3>
+          <div class="overflow-x-auto w-full">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="text-xs text-gray-400 border-b border-white/5 uppercase">
+                  <th class="py-2 px-4">Rank</th>
+                  <th class="py-2 px-4">Movie</th>
+                  <th class="py-2 px-4 text-right">Domestic Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="bo-domestic-table">
+                <!-- table rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="md:col-span-6 bg-[#1A1A1A] rounded-xl border border-white/5 p-6 space-y-4" data-aos="fade-up">
+          <h3 class="text-lg font-bold font-heading text-white border-b border-white/5 pb-2">Top Opening Weekends</h3>
+          <div class="overflow-x-auto w-full">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="text-xs text-gray-400 border-b border-white/5 uppercase">
+                  <th class="py-2 px-4">Rank</th>
+                  <th class="py-2 px-4">Movie</th>
+                  <th class="py-2 px-4 text-right">Opening Weekend</th>
+                </tr>
+              </thead>
+              <tbody id="bo-opening-table">
+                <!-- table rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- News section view is removed -->
+
+  <!-- 6. OTT STREAMING VIEW -->
+  <section id="view-ott" class="app-view">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-16">
+      
+      <!-- Title -->
+      <div class="mb-12" data-aos="fade-up">
+        <h1 class="text-3xl md:text-4xl font-black font-heading text-white">OTT Release Calendars</h1>
+        <p class="text-sm text-gray-400 mt-1">Track upcoming digital release schedules across major streaming providers</p>
+      </div>
+
+      <!-- Platforms Cards grid -->
+      <div id="ott-platforms-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- populated dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ABOUT VIEW -->
+  <section id="view-about" class="app-view">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-16 space-y-16">
+      
+      <!-- Hero Banner -->
+      <div class="bg-[#1A1A1A] p-8 md:p-12 rounded-2xl border border-white/5 grid md:grid-cols-12 gap-8 items-center" data-aos="fade-up">
+        <div class="md:col-span-7 space-y-4">
+          <span class="text-xs px-2.5 py-1 bg-[#FF6B00]/10 border border-[#FF6B00]/30 rounded-full text-[#FF6B00] font-bold">PLATFORM MISSION</span>
+          <h1 class="text-3xl md:text-5xl font-black font-heading text-white leading-tight">Empowering Movie Buffs with Real-Time Data</h1>
+          <p class="text-sm text-gray-300 leading-relaxed max-w-xl">BOX OFFICE is a premier entertainment platform designed to keep you updated with the latest box office statistics, movie metrics, actor profiles, reviews, and trailer breakdowns globally. We bridge visual design with dynamic APIs to create an unmatched immersive interface.</p>
+        </div>
+        <div class="md:col-span-5 aspect-video overflow-hidden rounded-xl border border-white/10">
+          <img src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover hover:scale-105 transition duration-500" alt="">
+        </div>
+      </div>
+
+      <!-- Vision & Platform stats -->
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5 text-center space-y-3" data-aos="fade-up">
+          <i data-lucide="compass" class="w-8 h-8 text-[#FF6B00] mx-auto"></i>
+          <h3 class="text-lg font-bold font-heading text-white">Our Vision</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">To become the ultimate global hub for entertainment financials and tracking directories, supporting users with absolute reliability.</p>
+        </div>
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5 text-center space-y-3" data-aos="fade-up" data-aos-delay="100">
+          <i data-lucide="shield-check" class="w-8 h-8 text-[#FF8C42] mx-auto"></i>
+          <h3 class="text-lg font-bold font-heading text-white">API Reliability</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">Utilizing live caches and backup structures, we guarantee that movie records remain fully available without service disruptions.</p>
+        </div>
+        <div class="bg-[#1A1A1A] p-6 rounded-xl border border-white/5 text-center space-y-3" data-aos="fade-up" data-aos-delay="200">
+          <i data-lucide="sparkles" class="w-8 h-8 text-[#FFA726] mx-auto"></i>
+          <h3 class="text-lg font-bold font-heading text-white">Design Philosophy</h3>
+          <p class="text-sm text-gray-400 leading-relaxed">Integrating cinematic glass surfaces with deep dark profiles and micro-animations to create a top-tier responsive desktop/mobile feel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact section view is removed -->
+
+  <!-- ---------------------------------------------------- -->
+  <!-- MODAL / DRAWER CONTAINERS -->
+  <!-- ---------------------------------------------------- -->
+
+  <!-- API Settings Modal is disabled and hidden from the UI (configured directly in the code) -->
+
+  <!-- TRAILER MODAL -->
+  <div id="trailer-video-modal" class="fixed inset-0 z-50 bg-black/90 hidden items-center justify-center p-4">
+    <div class="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl">
+      <button onclick="closeTrailer()" class="absolute top-4 right-4 z-50 bg-black/60 border border-white/10 p-2 rounded-full text-white hover:bg-[#FF6B00] transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <iframe id="trailer-iframe" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- MOVIE COMPARISON SIDEBAR DRAWER -->
+  <div id="comparison-sidebar" class="fixed top-0 right-0 h-full w-full max-w-md bg-[#0F0F0F] border-l border-white/10 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col justify-between overflow-hidden">
+    <div class="p-6 border-b border-white/5 flex items-center justify-between">
+      <div class="flex items-center space-x-2 text-[#FF6B00]">
+        <i data-lucide="columns" class="w-5 h-5"></i>
+        <h3 class="text-lg font-bold font-heading text-white">Compare Movies</h3>
+      </div>
+      <button id="close-compare-sidebar" class="text-gray-400 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar comparison list -->
+    <div class="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 align-top" id="comparison-movies-grid">
+      <!-- compare items dynamically filled -->
+    </div>
+
+    <div class="p-6 border-t border-white/5 bg-[#1A1A1A]/80 flex space-x-3">
+      <button id="reset-comparison" class="w-full py-2.5 bg-red-600/10 border border-red-600/35 hover:bg-red-600 hover:text-white text-xs font-semibold text-red-500 rounded-lg transition text-center">Reset Comparison</button>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- FOOTER -->
+  <!-- ---------------------------------------------------- -->
+  <footer class="bg-[#1A1A1A] border-t border-white/5 mt-20">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+      
+      <!-- Logo column -->
+      <div class="space-y-4">
+        <a href="#home" class="flex items-center space-x-2 text-[#FF6B00]">
+          <i data-lucide="clapperboard" class="w-6 h-6 stroke-[2.5]"></i>
+          <span class="text-xl font-black tracking-wider font-heading uppercase text-white">BOX <span class="text-[#FF6B00]">OFFICE</span></span>
+        </a>
+        <p class="text-xs text-gray-400 leading-relaxed">Your premium dynamic movie catalog and box office collection reports engine. Powered by TMDB & OMDB.</p>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-heading">Quick Links</h4>
+        <ul class="space-y-2 text-xs text-gray-400">
+          <li><a href="#home" class="hover:text-[#FF6B00] transition">Home</a></li>
+          <li><a href="#movies" class="hover:text-[#FF6B00] transition">Browse Movies</a></li>
+          <li><a href="#box-office" class="hover:text-[#FF6B00] transition">Box Office Analytics</a></li>
+          <li><a href="#ott" class="hover:text-[#FF6B00] transition">OTT Releases</a></li>
+        </ul>
+      </div>
+
+      <!-- Categories Links -->
+      <div class="space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-heading">Popular Categories</h4>
+        <ul class="space-y-2 text-xs text-gray-400">
+          <li><a href="#movies" onclick="appState.activeFilters.genre='28'; applyMovieFilters();" class="hover:text-[#FF6B00] transition">Action Blockbusters</a></li>
+          <li><a href="#movies" onclick="appState.activeFilters.genre='878'; applyMovieFilters();" class="hover:text-[#FF6B00] transition">Sci-Fi Adventures</a></li>
+          <li><a href="#movies" onclick="appState.activeFilters.genre='18'; applyMovieFilters();" class="hover:text-[#FF6B00] transition">Acclaimed Dramas</a></li>
+          <li><a href="#movies" onclick="appState.activeFilters.genre='35'; applyMovieFilters();" class="hover:text-[#FF6B00] transition">Comedy Hits</a></li>
+          <li><a href="#movies" onclick="appState.activeFilters.genre='53'; applyMovieFilters();" class="hover:text-[#FF6B00] transition">Thriller & Mystery</a></li>
+        </ul>
+      </div>
+
+      <!-- Subscriptions -->
+      <div class="space-y-4">
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider font-heading">Stay Connected</h4>
+        <p class="text-xs text-gray-400">Join our newsletter to receive direct box office collections updates.</p>
+        <form class="flex" onsubmit="event.preventDefault(); showToast('Subscribed!', 'success'); this.reset();">
+          <input type="email" placeholder="Email" required class="bg-[#2A2A2A] px-3 py-2 rounded-l-md text-xs w-full focus:outline-none text-white border border-white/5 focus:border-[#FF6B00]">
+          <button class="bg-[#FF6B00] hover:bg-[#FF8C42] text-white px-4 rounded-r-md transition"><i data-lucide="send" class="w-4 h-4"></i></button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Copyright -->
+    <div class="border-t border-white/5 py-6 text-center text-xs text-gray-500 max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
+      <span>&copy; 2026 BOX OFFICE. All Rights Reserved.</span>
+      <div class="flex space-x-4">
+        <a href="#about" class="hover:text-white transition">Privacy Policy</a>
+        <span>•</span>
+        <a href="#contact" class="hover:text-white transition">Support Center</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- SCRIPT BUNDLES -->
+  <!-- ---------------------------------------------------- -->
+
+  <!-- Swiper JS Script CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+  <!-- AOS Animations CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 1000,
+      once: true,
+      easing: 'ease-in-out'
+    });
+  </script>
+
+  <!-- Lucide Icon Set CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+
+  <!-- Application JS references -->
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
