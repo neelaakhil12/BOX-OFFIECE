@@ -751,7 +751,7 @@ async function setupMovieDetailsPage(id) {
   const daysElapsed = document.getElementById('details-days-elapsed');
   if (daysElapsed) {
     const today = new Date();
-    daysElapsed.textContent = `Advance data: Day 7 — ${today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
+    daysElapsed.textContent = `Live data as of: ${today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
   }
 
   // Set stats counters
