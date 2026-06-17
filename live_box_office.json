@@ -1,0 +1,60 @@
+{
+  "last_updated": "2026-06-17T15:13:00Z",
+  "source": "MovieMint Scraper Service",
+  "movies": [
+    {
+      "title": "Peddi",
+      "date": "Jun 4, 2026",
+      "gross": "₹8,18,54,533",
+      "ticketsSold": "377,210",
+      "shows": "41,467",
+      "occupancy": "6.06%",
+      "topRegion": "Andhra Pradesh"
+    },
+    {
+      "title": "Dacoit",
+      "date": "Apr 10, 2026",
+      "gross": "₹1,05,17,608",
+      "ticketsSold": "57,473",
+      "shows": "2,441",
+      "occupancy": "15.7%",
+      "topRegion": "Andhra Pradesh"
+    },
+    {
+      "title": "Ugly Story",
+      "date": "May 22, 2026",
+      "gross": "₹1,50,94,032",
+      "ticketsSold": "63,688",
+      "shows": "3,829",
+      "occupancy": "11.09%",
+      "topRegion": "Karnataka"
+    },
+    {
+      "title": "Bāhubali: The Epic",
+      "date": "Oct 31, 2025",
+      "gross": "₹3,42,88,102",
+      "ticketsSold": "180,450",
+      "shows": "5,120",
+      "occupancy": "23.5%",
+      "topRegion": "Telangana"
+    },
+    {
+      "title": "RRR",
+      "date": "Mar 25, 2022",
+      "gross": "₹15,48,99,221",
+      "ticketsSold": "890,112",
+      "shows": "24,800",
+      "occupancy": "32.4%",
+      "topRegion": "Andhra Pradesh"
+    },
+    {
+      "title": "Laila",
+      "date": "Feb 14, 2025",
+      "gross": "₹88,94,302",
+      "ticketsSold": "42,880",
+      "shows": "1,850",
+      "occupancy": "12.8%",
+      "topRegion": "Telangana"
+    }
+  ]
+}

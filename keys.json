@@ -1,4 +1,7 @@
 {
   "tmdbKey": "d9b5a4008faa1a1cd3c2e42d985cb619",
-  "omdbKey": "4a6891d5"
+  "omdbKey": "4a6891d5",
+  "moviegluClient": "NIZA",
+  "moviegluApiKey": "JOBGMwXWLD7NX0gHJIHmKaUd05UHItQT35JdUrS9",
+  "moviegluAuth": "Basic TklaQTp1RmN5aVpva0lVYUc="
 }

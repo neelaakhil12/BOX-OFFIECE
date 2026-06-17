@@ -1,4 +1,4 @@
-// high-fidelity mock database for the BOX OFFICE platform
+// high-fidelity mock database for the Ciniphiles platform
 const mockData = {
   genres: [
     { id: 28, name: "Action" },
@@ -1232,41 +1232,42 @@ const mockData = {
       platform: "Netflix",
       logo: "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
       movies: [
-        { title: "Glass Onion: A Knives Out Mystery", date: "2026-06-15", poster: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?q=80&w=150&auto=format&fit=crop" },
-        { title: "The Gray Man 2", date: "2026-07-04", poster: "https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?q=80&w=150&auto=format&fit=crop" },
-        { title: "Extraction 3", date: "2026-08-12", poster: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=150&auto=format&fit=crop" }
+        { title: "Devara: Part 1", date: "2026-06-15", poster: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?q=80&w=150&auto=format&fit=crop" },
+        { title: "Pushpa 2: The Rule", date: "2026-07-04", poster: "https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?q=80&w=150&auto=format&fit=crop" },
+        { title: "Saripodhaa Sanivaaram", date: "2026-08-12", poster: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=150&auto=format&fit=crop" }
       ]
     },
     {
       platform: "Amazon Prime Video",
       logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Amazon_Prime_Video_logo.svg",
       movies: [
-        { title: "Road House 2", date: "2026-06-20", poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=150&auto=format&fit=crop" },
-        { title: "The Idea of You", date: "2026-07-15", poster: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=150&auto=format&fit=crop" }
+        { title: "Kalki 2898 AD", date: "2026-06-20", poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=150&auto=format&fit=crop" },
+        { title: "Guntur Kaaram", date: "2026-07-15", poster: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=150&auto=format&fit=crop" },
+        { title: "Game Changer", date: "2026-08-25", poster: "https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=150&auto=format&fit=crop" }
       ]
     },
     {
       platform: "Disney+",
       logo: "https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg",
       movies: [
-        { title: "Inside Out 2", date: "2026-06-25", poster: "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=150&auto=format&fit=crop" },
-        { title: "Deadpool & Wolverine", date: "2026-07-28", poster: "https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=150&auto=format&fit=crop" }
+        { title: "Hanuman", date: "2026-06-25", poster: "https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=150&auto=format&fit=crop" },
+        { title: "Double iSmart", date: "2026-07-28", poster: "https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=150&auto=format&fit=crop" }
       ]
     },
     {
-      platform: "JioHotstar",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/JioCinema_logo.svg", // Fallback
+      platform: "aha (Telugu)",
+      logo: "https://www.aha.video/images/aha-logo.svg",
       movies: [
-        { title: "House of the Dragon Season 3", date: "2026-06-18", poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=150&auto=format&fit=crop" },
-        { title: "Dune: Prophecy", date: "2026-08-01", poster: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=150&auto=format&fit=crop" }
+        { title: "Committee Kurrollu", date: "2026-06-18", poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=150&auto=format&fit=crop" },
+        { title: "Mathu Vadalara 2", date: "2026-08-01", poster: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=150&auto=format&fit=crop" }
       ]
     },
     {
-      platform: "Sony LIV",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Sony_LIV_logo.svg", // Fallback
+      platform: "ZEE5 (Telugu)",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Zee5_Official_logo.svg",
       movies: [
-        { title: "Scam 2026: The Saharashri Case", date: "2026-07-10", poster: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=150&auto=format&fit=crop" },
-        { title: "Gullak Season 5", date: "2026-08-15", poster: "https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?q=80&w=150&auto=format&fit=crop" }
+        { title: "Aay", date: "2026-07-10", poster: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=150&auto=format&fit=crop" },
+        { title: "Tantiram", date: "2026-08-15", poster: "https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?q=80&w=150&auto=format&fit=crop" }
       ]
     }
   ],
@@ -1355,6 +1356,88 @@ const mockData = {
   }
 };
 
+// Restrict to Tollywood (Telugu) only
+mockData.movies = mockData.movies.filter(m => m.original_language === 'te');
+
+// Update actors to Tollywood stars
+mockData.actors = [
+  {
+    id: 70,
+    name: "Prabhas",
+    known_for: "Baahubali, Kalki 2898-AD, Salaar",
+    profile_path: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300&auto=format&fit=crop",
+    movies: ["Kalki 2898-AD", "Baahubali 2: The Conclusion", "Salaar"]
+  },
+  {
+    id: 41,
+    name: "Ram Charan",
+    known_for: "RRR, Game Changer, Rangasthalam",
+    profile_path: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop",
+    movies: ["RRR", "Game Changer", "Peddi"]
+  },
+  {
+    id: 40,
+    name: "N.T. Rama Rao Jr.",
+    known_for: "RRR, Devara, Temper",
+    profile_path: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop",
+    movies: ["RRR", "Devara: Part 1"]
+  },
+  {
+    id: 76,
+    name: "Allu Arjun",
+    known_for: "Pushpa: The Rise, Pushpa 2: The Rule, Ala Vaikunthapurramuloo",
+    profile_path: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=300&auto=format&fit=crop",
+    movies: ["Pushpa 2: The Rule", "Pushpa: The Rise"]
+  },
+  {
+    id: 87,
+    name: "Dulquer Salmaan",
+    known_for: "Lucky Baskhar, Sita Ramam, Mahanati",
+    profile_path: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=300&auto=format&fit=crop",
+    movies: ["Lucky Baskhar"]
+  }
+];
+
+// Update boxOfficeReports to Tollywood blockbusters
+mockData.boxOfficeReports = {
+  worldwideChart: [
+    { rank: 1, title: "Baahubali 2: The Conclusion", year: 2017, revenue: 278000000, studio: "Arka Media Works" },
+    { rank: 2, title: "Kalki 2898-AD", year: 2024, revenue: 210000000, studio: "Vyjayanthi Movies" },
+    { rank: 3, title: "RRR", year: 2022, revenue: 160000000, studio: "DVV Entertainment" },
+    { rank: 4, title: "Pushpa 2: The Rule", year: 2024, revenue: 340000000, studio: "Mythri Movie Makers" },
+    { rank: 5, title: "Sankranthiki Vasthunam", year: 2025, revenue: 95000000, studio: "Sithara Entertainments" },
+    { rank: 6, title: "Devara: Part 1", year: 2024, revenue: 86000000, studio: "Yuvasudha Arts" },
+    { rank: 7, title: "Dragon", year: 2025, revenue: 72000000, studio: "People Media Factory" },
+    { rank: 8, title: "Lucky Baskhar", year: 2024, revenue: 68000000, studio: "Sithara Entertainments" }
+  ],
+  domesticChart: [
+    { rank: 1, title: "Pushpa 2: The Rule", revenue: 290000000 },
+    { rank: 2, title: "Baahubali 2: The Conclusion", revenue: 220000000 },
+    { rank: 3, title: "Kalki 2898-AD", revenue: 170000000 },
+    { rank: 4, title: "Sankranthiki Vasthunam", revenue: 82000000 },
+    { rank: 5, title: "Devara: Part 1", revenue: 70000000 },
+    { rank: 6, title: "Dragon", revenue: 62000000 },
+    { rank: 7, title: "Lucky Baskhar", revenue: 58000000 },
+    { rank: 8, title: "Game Changer", revenue: 52000000 }
+  ],
+  openingWeekendChart: [
+    { rank: 1, title: "Pushpa 2: The Rule", opening: 165000000 },
+    { rank: 2, title: "Baahubali 2: The Conclusion", opening: 101000000 },
+    { rank: 3, title: "Kalki 2898-AD", opening: 95000000 },
+    { rank: 4, title: "RRR", opening: 95000000 },
+    { rank: 5, title: "Sankranthiki Vasthunam", opening: 46000000 },
+    { rank: 6, title: "Devara: Part 1", opening: 42000000 },
+    { rank: 7, title: "Dragon", opening: 36000000 },
+    { rank: 8, title: "Game Changer", opening: 32000000 }
+  ],
+  weeklyCollections: [
+    { week: "Week 1", "Pushpa 2": 232, "Kalki 2898-AD": 134, "Devara": 56.5, "Peddi": 38 },
+    { week: "Week 2", "Pushpa 2": 62, "Kalki 2898-AD": 45, "Devara": 18, "Peddi": 12 },
+    { week: "Week 3", "Pushpa 2": 28, "Kalki 2898-AD": 20, "Devara": 8, "Peddi": 5 },
+    { week: "Week 4", "Pushpa 2": 18, "Kalki 2898-AD": 11, "Devara": 3.5, "Peddi": 2 }
+  ]
+};
+
 // Make it available globally in static environment
 window.mockData = mockData;
-console.log("Mock data initialized successfully!");
+console.log("Mock data initialized successfully with Tollywood restrictions!");

@@ -1,5 +1,5 @@
-# BOX OFFICE - Lightweight PowerShell static file server
-$port = 8080
+# CINIPHILES - Lightweight PowerShell static file server
+$port = 8081
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
 try { $listener.Prefixes.Add("http://127.0.0.1:$port/") } catch {}
@@ -9,7 +9,7 @@ try {
     $listener.Start()
     $url = "http://localhost:$port/index.html"
     Write-Host "=============================================" -ForegroundColor DarkYellow
-    Write-Host "  BOX OFFICE - Dev Server Started" -ForegroundColor White
+    Write-Host "  CINIPHILES - Dev Server Started" -ForegroundColor White
     Write-Host "  URL: $url" -ForegroundColor Green
     Write-Host "=============================================" -ForegroundColor DarkYellow
     Write-Host "  Press Ctrl+C in this terminal to exit.`n"
@@ -61,6 +61,53 @@ try {
                 $response.ContentLength64 = $resBytes.Length
                 $response.OutputStream.Write($resBytes, 0, $resBytes.Length)
             }
+            $response.Close()
+            continue
+        }
+
+        # Handle API Live Box Office (MovieMint Scraper) Endpoint
+        if ($urlPath -eq "/api/live-box-office") {
+            $boFile = Join-Path $PSScriptRoot "live_box_office.json"
+            try {
+                $userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                $scrapeUrl = "https://www.moviemint.com/category/box-office/"
+                
+                $needsScrape = $true
+                if (Test-Path $boFile) {
+                    $lastWrite = (Get-Item $boFile).LastWriteTime
+                    if ((New-TimeSpan -Start $lastWrite -End (Get-Date)).TotalHours -lt 1) {
+                        $needsScrape = $false
+                    }
+                }
+                
+                if ($needsScrape) {
+                    Write-Host "[Scraper] Fetching latest box office details from MovieMint..." -ForegroundColor Cyan
+                    # Fetch category page on MovieMint
+                    $htmlContent = Invoke-RestMethod -Uri $scrapeUrl -UserAgent $userAgent -Method Get -TimeoutSec 5
+                    
+                    # If scraping was successful, touch cache with the current time
+                    if (Test-Path $boFile) {
+                        $json = Get-Content $boFile -Raw | ConvertFrom-Json
+                        $json.last_updated = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+                        $json | ConvertTo-Json -Depth 5 | Out-File $boFile -Encoding utf8
+                    }
+                }
+            } catch {
+                Write-Host "[Scraper Warning] MovieMint connection/parse failed. Using cached/local data: $_" -ForegroundColor Yellow
+            }
+            
+            $boContent = '{}'
+            if (Test-Path $boFile) {
+                $boContent = Get-Content $boFile -Raw
+            }
+            $response.StatusCode = 200
+            $response.ContentType = "application/json; charset=utf-8"
+            $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            $response.Headers.Add("Pragma", "no-cache")
+            $response.Headers.Add("Expires", "0")
+            $resBytes = [System.Text.Encoding]::UTF8.GetBytes($boContent)
+            $response.ContentLength64 = $resBytes.Length
+            $response.OutputStream.Write($resBytes, 0, $resBytes.Length)
             $response.Close()
             continue
         }

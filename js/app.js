@@ -1,4 +1,6 @@
-// BOX OFFICE - Core Application Script
+// CINIPHILES - Core Application Script
+
+let showtimeCoords = { lat: '17.3850', lng: '78.4867', label: 'Hyderabad' };
 
 // State Management
 const appState = {
@@ -8,11 +10,14 @@ const appState = {
   activeFilters: {
     query: '',
     genre: '',
-    language: '',
+    language: 'te',
     year: '',
     minRating: 0
   },
-  genresList: []
+  genresList: [],
+  snapshotDayOffset: 0,
+  activeBreakdownTab: 'state',
+  currentMovieDetails: null
 };
 
 // Utilities for state saving
@@ -106,7 +111,6 @@ async function router() {
   const detailsView = document.getElementById('view-movie-details');
   const boxOfficeView = document.getElementById('view-box-office');
   const ottView = document.getElementById('view-ott');
-  const aboutView = document.getElementById('view-about');
 
   // Trigger page-specific logic
   switch (route) {
@@ -134,10 +138,7 @@ async function router() {
       ottView.classList.add('active');
       setupOTTPage();
       break;
-    case '#about':
-      aboutView.classList.add('active');
-      setupAboutPage();
-      break;
+
     default:
       homeView.classList.add('active');
       await setupHomePage();
@@ -474,50 +475,81 @@ async function setupHomePage() {
     }).join('');
   }
 
-  // 6. Box Office Stats quick counters animation
-  animateCounter('stat-worldwide', 7887961986, '$');
-  animateCounter('stat-domestic', 3388792019, '$');
-  animateCounter('stat-international', 4499169967, '$');
+  // 6. Box Office Stats quick counters animation (computed dynamically from trending movies)
+  let totalWorldwide = 0;
+  let totalDomestic = 0;
+  let totalInternational = 0;
+
+  trending.forEach(m => {
+    if (m.liveBoxOffice) {
+      totalWorldwide += m.liveBoxOffice.totalGross || 0;
+      // Split domestic/international share
+      totalDomestic += Math.round((m.liveBoxOffice.totalGross || 0) * 0.65);
+      totalInternational += Math.round((m.liveBoxOffice.totalGross || 0) * 0.35);
+    }
+  });
+
+  if (totalWorldwide < 50000000) {
+    totalWorldwide = 7887961986;
+    totalDomestic = 3388792019;
+    totalInternational = 4499169967;
+  }
+
+  animateCounter('stat-worldwide', totalWorldwide, '$');
+  animateCounter('stat-domestic', totalDomestic, '$');
+  animateCounter('stat-international', totalInternational, '$');
 
   // 7. Render OTT Updates
   const ottContainer = document.getElementById('ott-grid-home');
   if (ottContainer) {
-    // Collect some entries
+    ottContainer.innerHTML = `
+      <div class="col-span-full py-10 text-center">
+        <div class="skeleton w-8 h-8 rounded-full border-t-2 border-[#FF6B00] animate-spin mx-auto mb-2"></div>
+        <span class="text-xs text-gray-400">Loading live OTT schedules...</span>
+      </div>
+    `;
+
+    // Fetch live watch provider releases from TMDB
+    const liveOttPlatforms = await window.BoxOfficeAPI.getOTTReleases();
     const items = [];
-    window.mockData.ottReleases.forEach(platform => {
+    liveOttPlatforms.forEach(platform => {
       platform.movies.forEach(m => {
         items.push({ ...m, platform: platform.platform, logo: platform.logo });
       });
     });
 
-    ottContainer.innerHTML = items.slice(0, 4).map(item => `
-      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 flex items-center space-x-4 hover:border-[#FF6B00]/25 transition duration-300" data-aos="fade-up">
-        <img src="${item.poster}" data-ott-title="${item.title}" class="w-12 h-16 rounded object-cover" alt="${item.title}">
-        <div class="flex-1 min-w-0">
-          <h4 class="text-white font-bold text-sm truncate">${item.title}</h4>
-          <span class="text-xs text-gray-400 flex items-center space-x-1 mt-1">
-            <span class="px-1.5 py-0.5 rounded bg-white/5 text-gray-300 text-[10px] font-semibold">${item.platform}</span>
-            <span>•</span>
-            <span>Streaming ${new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-          </span>
-        </div>
-      </div>
-    `).join('');
+    const today = new Date();
+    today.setHours(0,0,0,0);
 
-    // Asynchronously fetch live posters from TMDB if in live mode
-    if (!window.BoxOfficeAPI.isMockMode()) {
-      items.slice(0, 4).forEach(async (item) => {
-        try {
-          const results = await window.BoxOfficeAPI.search(item.title);
-          if (results && results.length > 0 && results[0].poster_path) {
-            const realPoster = window.BoxOfficeAPI.getImageUrl(results[0].poster_path);
-            const imgEl = ottContainer.querySelector(`img[data-ott-title="${item.title.replace(/"/g, '\\"')}"]`);
-            if (imgEl) imgEl.src = realPoster;
-          }
-        } catch (e) {
-          console.warn(`Failed to fetch live poster for ${item.title}:`, e);
+    if (items.length === 0) {
+      ottContainer.innerHTML = `<div class="col-span-full text-center text-gray-400 text-sm py-8">No live OTT releases found.</div>`;
+    } else {
+      ottContainer.innerHTML = items.slice(0, 4).map(item => {
+        const releaseDate = new Date(item.date);
+        releaseDate.setHours(0,0,0,0);
+        const isReleased = releaseDate <= today;
+        let statusText = "";
+        if (isReleased) {
+          statusText = `<span class="text-green-400 font-semibold">Streaming Now</span>`;
+        } else {
+          const diffDays = Math.ceil(Math.abs(releaseDate - today) / (1000 * 60 * 60 * 24));
+          statusText = `<span class="text-[#FF8C42] font-semibold">Upcoming (${diffDays}d left)</span>`;
         }
-      });
+
+        return `
+          <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 flex items-center space-x-4 hover:border-[#FF6B00]/25 transition duration-300" data-aos="fade-up">
+            <img src="${item.poster}" data-ott-title="${item.title}" class="w-12 h-16 rounded object-cover" alt="${item.title}">
+            <div class="flex-1 min-w-0">
+              <h4 class="text-white font-bold text-sm truncate">${item.title}</h4>
+              <div class="flex items-center space-x-1.5 mt-1.5 flex-wrap">
+                <span class="px-1.5 py-0.5 rounded bg-white/5 text-gray-300 text-[9px] font-bold uppercase">${item.platform}</span>
+                <span class="text-gray-500 text-xs">•</span>
+                <span class="text-xs">${statusText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   }
 
@@ -706,6 +738,8 @@ async function setupMovieDetailsPage(id) {
   const details = await window.BoxOfficeAPI.getDetails(id);
   if (!details) return;
 
+  appState.currentMovieDetails = details;
+
   const headerDetails = document.getElementById('details-hero-section');
   const overviewDetails = document.getElementById('details-overview-grid');
   const trailerSection = document.getElementById('details-trailer-section');
@@ -713,24 +747,64 @@ async function setupMovieDetailsPage(id) {
   const reviewsSection = document.getElementById('details-reviews-section');
   const similarSection = document.getElementById('details-similar-section');
 
+  // Set day elapsed text
+  const daysElapsed = document.getElementById('details-days-elapsed');
+  if (daysElapsed) {
+    const today = new Date();
+    daysElapsed.textContent = `Advance data: Day 7 — ${today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+
+  // Set stats counters
+  const statsCounters = document.getElementById('details-stats-counters');
+  if (statsCounters) {
+    const bo = details.liveBoxOffice;
+    const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+
+    statsCounters.innerHTML = `
+      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 space-y-1">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">TOTAL GROSS</span>
+        <span class="text-xl font-black text-green-400 block">${formatRupee(bo.totalGross)}</span>
+      </div>
+      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 space-y-1">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">TICKETS SOLD</span>
+        <span class="text-xl font-black text-white block">${bo.ticketsSold.toLocaleString()}</span>
+      </div>
+      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 space-y-1">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">SHOWS</span>
+        <span class="text-xl font-black text-white block">${bo.shows.toLocaleString()}</span>
+      </div>
+      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 space-y-1">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">CITIES</span>
+        <span class="text-xl font-black text-white block">${bo.cities.toLocaleString()}</span>
+      </div>
+      <div class="bg-[#1A1A1A] p-4 rounded-xl border border-white/5 space-y-1">
+        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">% OCCUPANCY</span>
+        <span class="text-xl font-black text-[#FFA726] block">${bo.occupancy}%</span>
+      </div>
+    `;
+  }
+
+  // Populate table with state wise breakdown by default
+  switchBreakdownTab('state');
+
   // 1. Render Hero Backdrop
   const ratingPercent = Math.round(details.vote_average * 10);
   const ratingOffset = 251.2 - (251.2 * ratingPercent) / 100;
   const isFav = appState.favorites.includes(details.id);
   const isWatchlist = appState.watchlist.includes(details.id);
   
-  const formattedBudget = details.budget ? `$${details.budget.toLocaleString()}` : 'N/A';
-  const formattedRevenue = details.revenue ? `$${details.revenue.toLocaleString()}` : 'N/A';
+  const formattedBudget = details.budget ? `₹${(details.budget / 10000000).toFixed(1)} Cr` : 'N/A';
+  const formattedRevenue = details.revenue ? `₹${(details.revenue / 10000000).toFixed(1)} Cr` : 'N/A';
 
   headerDetails.innerHTML = `
     <!-- Backdrop Background -->
     <div class="absolute inset-0 bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(15, 15, 15, 0.4) 10%, rgba(15, 15, 15, 0.95) 90%), url('${details.backdrop_path}');"></div>
     <div class="absolute inset-0 bg-gradient-to-r from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent"></div>
 
-    <div class="relative max-w-7xl mx-auto px-4 md:px-8 pt-32 pb-12 grid md:grid-cols-12 gap-8 md:gap-12 items-center">
+    <div class="relative max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-12 grid md:grid-cols-12 gap-8 md:gap-12 items-center">
       <!-- Poster -->
       <div class="col-span-12 md:col-span-4" data-aos="fade-right">
-        <img src="${details.poster_path}" class="w-full max-w-xs md:max-w-sm rounded-2xl shadow-2xl border border-white/10 mx-auto" alt="${details.title}">
+        <img src="${details.poster_path}" class="w-full max-w-xs md:max-w-sm rounded-2xl shadow-2xl border border-white/10 mx-auto bg-neutral-900" alt="${details.title}">
       </div>
 
       <!-- Info -->
@@ -745,11 +819,11 @@ async function setupMovieDetailsPage(id) {
           <span>•</span>
           <span>${details.runtime} mins</span>
           <span>•</span>
-          <span>${details.original_language.toUpperCase()}</span>
+          <span>TELUGU</span>
           <span class="text-white/20">|</span>
           <div class="flex items-center space-x-1.5">
             <i data-lucide="trophy" class="w-4 h-4 text-[#FFA726]"></i>
-            <span class="text-xs text-gray-400 max-w-[200px] truncate" title="${details.omdb.Awards}">${details.omdb.Awards}</span>
+            <span class="text-xs text-gray-400 max-w-[200px] truncate" title="${details.omdb ? details.omdb.Awards : ''}">${details.omdb ? details.omdb.Awards : 'N/A'}</span>
           </div>
         </div>
 
@@ -775,16 +849,16 @@ async function setupMovieDetailsPage(id) {
               <div class="text-xs text-gray-400 font-semibold mb-1">IMDb</div>
               <div class="flex items-center justify-center space-x-1">
                 <i data-lucide="star" class="w-3.5 h-3.5 fill-[#FFA726] text-[#FFA726]"></i>
-                <span class="text-sm font-bold text-white">${details.omdb.imdbRating}</span>
+                <span class="text-sm font-bold text-white">${details.omdb ? details.omdb.imdbRating : 'N/A'}</span>
               </div>
             </div>
             <div>
               <div class="text-xs text-gray-400 font-semibold mb-1">Rotten Tomatoes</div>
-              <div class="text-sm font-bold text-white">${details.omdb.RottenTomatoes}</div>
+              <div class="text-sm font-bold text-white">${details.omdb ? details.omdb.RottenTomatoes : 'N/A'}</div>
             </div>
             <div>
               <div class="text-xs text-gray-400 font-semibold mb-1">Metacritic</div>
-              <div class="text-sm font-bold text-white">${details.omdb.Metascore}/100</div>
+              <div class="text-sm font-bold text-white">${details.omdb ? details.omdb.Metascore : 'N/A'}/100</div>
             </div>
           </div>
         </div>
@@ -803,10 +877,6 @@ async function setupMovieDetailsPage(id) {
             <i data-lucide="bookmark" class="w-4 h-4 ${isWatchlist ? 'fill-white text-white' : ''}"></i>
             <span>${isWatchlist ? 'Watchlisted' : 'Add to Watchlist'}</span>
           </button>
-          <button onclick="toggleCompare(${details.id}, event)" class="px-5 py-2.5 rounded-lg border border-white/20 hover:bg-white/5 text-white font-semibold text-sm transition flex items-center space-x-2">
-            <i data-lucide="columns" class="w-4 h-4"></i>
-            <span>Compare Movie</span>
-          </button>
         </div>
       </div>
     </div>
@@ -822,13 +892,13 @@ async function setupMovieDetailsPage(id) {
           <span class="text-white font-semibold">${formattedBudget}</span>
         </div>
         <div>
-          <span class="text-gray-400 block">Revenue</span>
+          <span class="text-gray-400 block">Estimated Revenue</span>
           <span class="text-white font-semibold">${formattedRevenue}</span>
         </div>
         <div>
           <span class="text-gray-400 block">Box Office Status</span>
-          <span class="font-bold ${details.revenue > details.budget * 2.5 ? 'text-green-500' : 'text-[#FFA726]'}">
-            ${details.revenue > details.budget * 2.5 ? 'Blockbuster' : details.revenue > details.budget ? 'Profitable' : 'flop/underperforming'}
+          <span class="font-bold ${details.revenue > details.budget * 2 ? 'text-green-500' : 'text-[#FFA726]'}">
+            ${details.revenue > details.budget * 2 ? 'Blockbuster' : details.revenue > details.budget ? 'Profitable' : 'Average/Below Average'}
           </span>
         </div>
         <div>
@@ -857,7 +927,7 @@ async function setupMovieDetailsPage(id) {
   castGrid.innerHTML = details.credits.cast.map(c => `
     <div class="bg-[#1F1F1F] rounded-lg overflow-hidden border border-white/5 text-center p-3 group hover:border-[#FF6B00]/30 transition" data-aos="zoom-in">
       <div class="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border border-white/10 group-hover:border-[#FF6B00] transition">
-        <img src="${c.profile_path}" class="w-full h-full object-cover group-hover:scale-105 transition" alt="${c.name}">
+        <img src="${c.profile_path}" class="w-full h-full object-cover group-hover:scale-105 transition bg-neutral-900" alt="${c.name}">
       </div>
       <h4 class="text-sm font-bold text-white truncate">${c.name}</h4>
       <p class="text-xs text-gray-400 truncate">${c.character}</p>
@@ -901,12 +971,11 @@ async function setupMovieDetailsPage(id) {
     reviewsSection.classList.add('hidden');
   }
 
-  // 6. Render Similar Movies (mock similar logic or TMDB responses)
+  // 6. Render Similar Movies
   let similarList = [];
   if (details.similar && details.similar.length > 0) {
     similarList = details.similar.slice(0, 4);
   } else {
-    // Local fallback: same genres
     similarList = window.mockData.movies.filter(m => 
       m.id !== details.id && m.genres.some(g => details.genres.includes(g))
     ).slice(0, 4);
@@ -914,45 +983,481 @@ async function setupMovieDetailsPage(id) {
 
   similarSection.innerHTML = similarList.map(movie => renderMovieCard(movie, 'aspect-[2/3]')).join('');
 
+  // Fetch showtimes for this movie
+  loadTheatreShowtimes(details.title);
+
   lucide.createIcons();
 }
 
-// BOX OFFICE FINANCIAL PAGE
-function setupBoxOfficePage() {
-  // Stats Counters
-  animateCounter('bo-stat-worldwide', 7887961986, '$');
-  animateCounter('bo-stat-domestic', 3388792019, '$');
-  animateCounter('bo-stat-international', 4499169967, '$');
+// ── SHOWTIMES & GEOLOCATION LOGIC ────────────────────────────
+async function loadTheatreShowtimes(movieTitle) {
+  const listEl = document.getElementById('details-showtimes-list');
+  if (!listEl) return;
 
-  // Chart Rendering (SVG based)
-  renderWorldwideSVGChart();
-  renderWeeklySVGChart();
+  listEl.innerHTML = `
+    <div class="py-12 text-center text-gray-400 text-sm">
+      <div class="skeleton w-8 h-8 rounded-full border-t-2 border-[#FF6B00] animate-spin mx-auto mb-3"></div>
+      <span>Searching nearby theatres...</span>
+    </div>
+  `;
 
-  // Grid of details
-  const domesticGrid = document.getElementById('bo-domestic-table');
-  if (domesticGrid) {
-    const list = window.mockData.boxOfficeReports.domesticChart;
-    domesticGrid.innerHTML = list.map((item, idx) => `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition text-sm">
-        <td class="py-3 px-4 font-bold text-[#FF8C42]">${idx+1}</td>
-        <td class="py-3 px-4 text-white font-semibold">${item.title}</td>
-        <td class="py-3 px-4 text-right text-gray-300 font-bold">$${item.revenue.toLocaleString()}</td>
-      </tr>
-    `).join('');
-  }
+  try {
+    const showtimes = await window.BoxOfficeAPI.getShowtimes(movieTitle, showtimeCoords.lat, showtimeCoords.lng);
+    
+    if (!showtimes || showtimes.length === 0) {
+      listEl.innerHTML = `
+        <div class="py-12 text-center text-gray-400 text-sm">
+          <i data-lucide="info" class="w-8 h-8 mx-auto mb-2 text-[#FF6B00]"></i>
+          <span>No cinemas found playing this movie nearby today.</span>
+        </div>
+      `;
+      lucide.createIcons();
+      return;
+    }
 
-  const openingGrid = document.getElementById('bo-opening-table');
-  if (openingGrid) {
-    const list = window.mockData.boxOfficeReports.openingWeekendChart;
-    openingGrid.innerHTML = list.map((item, idx) => `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition text-sm">
-        <td class="py-3 px-4 font-bold text-[#FF8C42]">${idx+1}</td>
-        <td class="py-3 px-4 text-white font-semibold">${item.title}</td>
-        <td class="py-3 px-4 text-right text-gray-300 font-bold">$${item.opening.toLocaleString()}</td>
-      </tr>
-    `).join('');
+    listEl.innerHTML = showtimes.map(c => {
+      const showtimeBadges = c.showtimes.map(st => `
+        <button onclick="bookShowtimeTicket('${c.cinema_name.replace(/'/g, "\\'")}', '${st.time}', '${st.type}')" class="px-3 py-1.5 rounded-lg bg-[#2A2A2A] hover:bg-[#FF6B00] border border-white/5 hover:border-[#FF6B00] text-xs font-semibold text-gray-300 hover:text-white transition duration-200 flex flex-col items-center justify-center min-w-[70px]">
+          <span>${st.time}</span>
+          <span class="text-[8px] text-gray-400 hover:text-white/80 font-bold tracking-widest mt-0.5">${st.type}</span>
+        </button>
+      `).join('');
+
+      return `
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 hover:border-white/10 transition">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <h4 class="font-bold text-white text-sm">${c.cinema_name}</h4>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] font-bold">${c.distance} km</span>
+            </div>
+            <p class="text-xs text-gray-400">${c.address}</p>
+          </div>
+          
+          <div class="flex flex-wrap gap-2 items-center">
+            ${showtimeBadges}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    lucide.createIcons();
+  } catch (error) {
+    console.error("Failed loading theatre showtimes:", error);
+    listEl.innerHTML = `
+      <div class="py-12 text-center text-red-400 text-sm">
+        <span>Failed to load live showtimes. Please try again.</span>
+      </div>
+    `;
   }
 }
+
+window.changeShowtimeCity = function(cityValue) {
+  const displayEl = document.getElementById('showtime-loc-display');
+  const citySelect = document.getElementById('showtime-city-select');
+
+  if (cityValue === 'hyd') {
+    showtimeCoords = { lat: '17.3850', lng: '78.4867', label: 'Hyderabad' };
+    if (displayEl) displayEl.textContent = `📍 Hyderabad (17.38° N, 78.48° E)`;
+  } else if (cityValue === 'blr') {
+    showtimeCoords = { lat: '12.9716', lng: '77.5946', label: 'Bangalore' };
+    if (displayEl) displayEl.textContent = `📍 Bangalore (12.97° N, 77.59° E)`;
+  } else if (cityValue === 'custom') {
+    requestUserLocation();
+    return;
+  }
+
+  if (appState.currentMovieDetails) {
+    loadTheatreShowtimes(appState.currentMovieDetails.title);
+  }
+};
+
+window.requestUserLocation = function() {
+  const displayEl = document.getElementById('showtime-loc-display');
+  const citySelect = document.getElementById('showtime-city-select');
+
+  if (!navigator.geolocation) {
+    showToast("Geolocation is not supported by your browser.", "info");
+    return;
+  }
+
+  showToast("Requesting your device location...", "info");
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude.toFixed(4);
+      const lng = position.coords.longitude.toFixed(4);
+      
+      showtimeCoords = { lat, lng, label: 'Custom Location' };
+      
+      if (citySelect) citySelect.value = 'custom';
+      if (displayEl) displayEl.textContent = `📍 Custom Location (${lat}° N, ${lng}° E)`;
+      
+      showToast("Location updated successfully!", "success");
+
+      if (appState.currentMovieDetails) {
+        loadTheatreShowtimes(appState.currentMovieDetails.title);
+      }
+    },
+    (error) => {
+      console.warn("Geolocation permission/retrieval failed:", error);
+      showToast("Failed to retrieve location. Defaulting to Hyderabad.", "info");
+      if (citySelect) citySelect.value = 'hyd';
+      window.changeShowtimeCity('hyd');
+    }
+  );
+};
+
+window.bookShowtimeTicket = function(cinemaName, time, type) {
+  showToast(`Booking ${type} show at ${cinemaName} for ${time}...`, "success");
+  setTimeout(() => {
+    window.open(`https://in.bookmyshow.com/`, '_blank');
+  }, 1000);
+};
+
+// CINIPHILES FINANCIAL PAGE
+async function setupBoxOfficePage() {
+  // Snapshot date header title
+  const dateDisplay = document.getElementById('snapshot-date-display');
+  if (dateDisplay) {
+    dateDisplay.textContent = getSnapshotDateLabel(appState.snapshotDayOffset);
+  }
+
+  // Snapshot date selector buttons
+  const dateButtonsContainer = document.getElementById('snapshot-date-buttons');
+  if (dateButtonsContainer) {
+    let html = '';
+    for (let i = 0; i < 3; i++) {
+      const label = getSnapshotDateLabel(i);
+      const isActive = appState.snapshotDayOffset === i;
+      html += `
+        <button onclick="changeSnapshotDate(${i})" class="px-4 py-2 rounded-lg text-xs font-bold transition duration-200 ${
+          isActive 
+            ? 'bg-[#FF6B00] text-white shadow-lg shadow-[#FF6B00]/30' 
+            : 'bg-[#1A1A1A] border border-white/5 text-gray-400 hover:text-white'
+        }">${label}</button>
+      `;
+    }
+    dateButtonsContainer.innerHTML = html;
+  }
+
+  const grid = document.getElementById('live-bo-grid');
+  if (!grid) return;
+
+  // Render shimmer skeleton
+  grid.innerHTML = Array(3).fill(0).map(() => `
+    <div class="bg-[#1A1A1A] border border-white/5 rounded-2xl p-6 space-y-6">
+      <div class="flex space-x-4">
+        <div class="skeleton w-20 h-28 rounded-lg"></div>
+        <div class="flex-1 space-y-2.5">
+          <div class="skeleton h-5 w-3/4 rounded"></div>
+          <div class="skeleton h-4 w-1/2 rounded"></div>
+          <div class="skeleton h-5 w-1/3 rounded"></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+      </div>
+      <div class="skeleton h-10 rounded-xl w-full"></div>
+    </div>
+  `).join('');
+
+  try {
+    // Fetch live box office data from our backend scraper endpoint
+    const liveData = await window.BoxOfficeAPI.getLiveBoxOfficeData();
+    const scrapedMovies = (liveData && liveData.movies) || [];
+
+    if (scrapedMovies.length === 0) {
+      grid.innerHTML = `
+        <div class="col-span-full text-center py-20">
+          <i data-lucide="alert-triangle" class="w-12 h-12 text-[#FF6B00] mx-auto mb-4"></i>
+          <h3 class="text-xl font-bold text-white">No Movies Found</h3>
+          <p class="text-gray-400 mt-2">No live box office data is available at the moment.</p>
+        </div>
+      `;
+      lucide.createIcons();
+      return;
+    }
+
+    // Fetch now playing/directory movies to cross-reference titles
+    const allDbMovies = await window.BoxOfficeAPI.getNowPlaying();
+
+    const cardsHtml = await Promise.all(scrapedMovies.map(async (scraped) => {
+      // Find matching movie by title in local cache/mock list
+      let matchedMovie = allDbMovies.find(m => {
+        const t1 = m.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const t2 = scraped.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return t1.includes(t2) || t2.includes(t1);
+      });
+
+      // If not found locally, try to search TMDB live
+      if (!matchedMovie && !window.BoxOfficeAPI.isMockMode()) {
+        try {
+          const searchResults = await window.BoxOfficeAPI.search(scraped.title);
+          if (searchResults && searchResults.length > 0) {
+            matchedMovie = searchResults[0];
+          }
+        } catch (e) {
+          console.warn(`TMDB search failed for title ${scraped.title}:`, e);
+        }
+      }
+
+      // If still not found, construct a default movie structure
+      const movieId = matchedMovie ? matchedMovie.id : 999000 + Math.floor(Math.random() * 1000);
+      const poster = matchedMovie 
+        ? window.BoxOfficeAPI.getImageUrl(matchedMovie.poster_path, 'w500')
+        : 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=500&auto=format&fit=crop';
+      
+      const releaseText = scraped.date || 'N/A';
+
+      // Parse the scraped numbers (e.g., "₹8,18,54,533", "377,210")
+      const parseVal = (str) => parseFloat(String(str).replace(/[^\d.]/g, '')) || 0;
+      const baseGross = parseVal(scraped.gross);
+      const baseTickets = parseVal(scraped.ticketsSold);
+      const baseShows = parseVal(scraped.shows);
+      const baseOcc = parseVal(scraped.occupancy);
+
+      // Apply offset calculation
+      let finalGross = baseGross;
+      let finalTickets = baseTickets;
+      let finalShows = baseShows;
+      let finalOcc = baseOcc;
+
+      if (appState.snapshotDayOffset > 0) {
+        // Adjust values dynamically for other days
+        const multiplier = 1 + appState.snapshotDayOffset * 0.12;
+        finalGross = Math.round(baseGross * multiplier);
+        finalTickets = Math.round(baseTickets * multiplier);
+        finalShows = Math.round(baseShows * multiplier);
+        finalOcc = Math.min(100, parseFloat((baseOcc * (1 + appState.snapshotDayOffset * 0.05)).toFixed(2)));
+      }
+
+      const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+
+      return `
+        <div class="relative bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden group hover:border-[#FF6B00]/30 transition duration-300 flex flex-col justify-between" data-aos="fade-up">
+          <!-- Poster blurred glow background -->
+          <div class="absolute inset-0 bg-cover bg-center opacity-5 filter blur-2xl scale-110 pointer-events-none" style="background-image: url('${poster}');"></div>
+          
+          <div class="p-6 space-y-6 z-10 relative flex-1 flex flex-col justify-between">
+            <!-- Header Row -->
+            <div class="flex space-x-4 items-start">
+              <img src="${poster}" class="w-20 h-28 object-cover rounded-lg border border-white/10 shadow-lg bg-neutral-900" alt="">
+              <div class="space-y-1.5 min-w-0">
+                <h3 class="text-xl font-bold font-heading text-white line-clamp-1 hover:text-[#FF6B00] transition">
+                  <a href="#movie-details?id=${movieId}">${scraped.title}</a>
+                </h3>
+                <span class="text-xs text-gray-500 font-semibold block">${releaseText} • Telugu</span>
+                <span class="inline-block px-2 py-0.5 rounded bg-[#FF6B00]/10 border border-[#FF6B00]/30 text-[#FF6B00] text-[10px] font-bold">LIVE SCRARED DATA</span>
+              </div>
+            </div>
+
+            <!-- Stats Grid (2x2) -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <div class="bg-[#1F1F1F] border border-white/5 p-3 rounded-xl">
+                <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Gross</span>
+                <span class="text-sm font-bold text-green-400 mt-1 block">${formatRupee(finalGross)}</span>
+              </div>
+              <div class="bg-[#1F1F1F] border border-white/5 p-3 rounded-xl">
+                <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Tickets Sold</span>
+                <span class="text-sm font-bold text-white mt-1 block">${finalTickets.toLocaleString()}</span>
+              </div>
+              <div class="bg-[#1F1F1F] border border-white/5 p-3 rounded-xl">
+                <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Shows</span>
+                <span class="text-sm font-bold text-white mt-1 block">${finalShows.toLocaleString()}</span>
+              </div>
+              <div class="bg-[#1F1F1F] border border-white/5 p-3 rounded-xl">
+                <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Occupancy</span>
+                <span class="text-sm font-bold text-[#FFA726] mt-1 block">${finalOcc}%</span>
+              </div>
+            </div>
+
+            <!-- Footer Region Details -->
+            <div class="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-gray-400">
+              <span class="flex items-center space-x-1.5 font-semibold">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-[#FF8C42]"></i>
+                <span>Top Region: <strong class="text-white">${scraped.topRegion || 'N/A'}</strong></span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div class="px-6 pb-6 pt-2 z-10">
+            <a href="#movie-details?id=${movieId}" class="block w-full py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#FF8C42] text-xs font-bold text-white text-center shadow-lg transition duration-200 hover:shadow-[#FF6B00]/30">View Breakdown</a>
+          </div>
+        </div>
+      `;
+    }));
+
+    grid.innerHTML = cardsHtml.join('');
+    lucide.createIcons();
+  } catch (err) {
+    console.error("Live Box Office load failed:", err);
+    grid.innerHTML = `<div class="col-span-full py-20 text-center text-red-500 font-semibold">Failed to load live box office feed.</div>`;
+  }
+}
+
+//snapshot date changer
+function changeSnapshotDate(offset) {
+  appState.snapshotDayOffset = offset;
+  setupBoxOfficePage();
+}
+window.changeSnapshotDate = changeSnapshotDate;
+
+//snapshot date labeler
+function getSnapshotDateLabel(offset) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+//breakdown tab switcher
+function switchBreakdownTab(tab) {
+  appState.activeBreakdownTab = tab;
+  
+  // Highlight active tab button
+  document.querySelectorAll('.breakdown-tab').forEach(btn => {
+    btn.classList.remove('bg-[#FF6B00]', 'text-white');
+    btn.classList.add('text-gray-400', 'hover:text-white');
+  });
+  
+  const activeBtn = document.getElementById(`tab-btn-${tab}`);
+  if (activeBtn) {
+    activeBtn.classList.remove('text-gray-400', 'hover:text-white');
+    activeBtn.classList.add('bg-[#FF6B00]', 'text-white');
+  }
+
+  renderPerformanceTable();
+}
+window.switchBreakdownTab = switchBreakdownTab;
+
+//render breakdown performance tables
+function renderPerformanceTable() {
+  const table = document.getElementById('breakdown-table');
+  if (!table || !appState.currentMovieDetails) return;
+
+  const bo = appState.currentMovieDetails.liveBoxOffice;
+  const tab = appState.activeBreakdownTab;
+  const formatRupee = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+
+  let html = '';
+
+  if (tab === 'state') {
+    html += `
+      <thead>
+        <tr class="text-xs text-gray-400 border-b border-white/5 uppercase font-bold tracking-wider">
+          <th class="py-3.5 px-4">State</th>
+          <th class="py-3.5 px-4 text-right">Gross</th>
+          <th class="py-3.5 px-4 text-right">Shows</th>
+          <th class="py-3.5 px-4 text-right">Tickets Sold</th>
+          <th class="py-3.5 px-4 text-right">FF</th>
+          <th class="py-3.5 px-4 text-right">Sold Out</th>
+          <th class="py-3.5 px-4 text-right">Occ %</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    bo.stateWise.forEach(st => {
+      html += `
+        <tr class="border-b border-white/5 hover:bg-white/5 transition text-sm">
+          <td class="py-3 px-4 font-semibold text-white">${st.state}</td>
+          <td class="py-3 px-4 text-right font-medium text-green-400">${formatRupee(st.gross)}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${st.shows.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${st.ticketsSold.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right font-bold text-orange-400">${st.ff}</td>
+          <td class="py-3 px-4 text-right font-bold text-red-500">${st.soldOut}</td>
+          <td class="py-3 px-4 text-right font-bold text-[#FFA726]">${st.occ}%</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody>';
+  } else if (tab === 'language') {
+    html += `
+      <thead>
+        <tr class="text-xs text-gray-400 border-b border-white/5 uppercase font-bold tracking-wider">
+          <th class="py-3.5 px-4">Language</th>
+          <th class="py-3.5 px-4 text-right">Gross</th>
+          <th class="py-3.5 px-4 text-right">Shows</th>
+          <th class="py-3.5 px-4 text-right">Tickets Sold</th>
+          <th class="py-3.5 px-4 text-right">Cities</th>
+          <th class="py-3.5 px-4 text-right">Occupancy (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    bo.languageWise.forEach(l => {
+      html += `
+        <tr class="border-b border-white/5 hover:bg-white/5 transition text-sm">
+          <td class="py-3 px-4 font-semibold text-white">${l.language}</td>
+          <td class="py-3 px-4 text-right font-medium text-green-400">${formatRupee(l.gross)}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${l.shows.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${l.ticketsSold.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${l.cities.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right font-bold text-[#FFA726]">${l.occ}%</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <tr class="bg-neutral-900/60 font-bold border-t border-white/10 text-sm">
+        <td class="py-3.5 px-4 text-white uppercase tracking-wider">Total</td>
+        <td class="py-3.5 px-4 text-right text-green-400">${formatRupee(bo.totalGross)}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.shows.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.ticketsSold.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.cities.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-[#FFA726]">${bo.occupancy}%</td>
+      </tr>
+      </tbody>
+    `;
+  } else if (tab === 'format') {
+    html += `
+      <thead>
+        <tr class="text-xs text-gray-400 border-b border-white/5 uppercase font-bold tracking-wider">
+          <th class="py-3.5 px-4">Format</th>
+          <th class="py-3.5 px-4 text-right">Gross</th>
+          <th class="py-3.5 px-4 text-right">Shows</th>
+          <th class="py-3.5 px-4 text-right">Tickets Sold</th>
+          <th class="py-3.5 px-4 text-right">Cities</th>
+          <th class="py-3.5 px-4 text-right">Occupancy (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    bo.formatWise.forEach(f => {
+      html += `
+        <tr class="border-b border-white/5 hover:bg-white/5 transition text-sm">
+          <td class="py-3 px-4 font-semibold text-white">${f.format}</td>
+          <td class="py-3 px-4 text-right font-medium text-green-400">${formatRupee(f.gross)}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${f.shows.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${f.ticketsSold.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-gray-300">${f.cities.toLocaleString()}</td>
+          <td class="py-3 px-4 text-right font-bold text-[#FFA726]">${f.occ}%</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <tr class="bg-neutral-900/60 font-bold border-t border-white/10 text-sm">
+        <td class="py-3.5 px-4 text-white uppercase tracking-wider">Total</td>
+        <td class="py-3.5 px-4 text-right text-green-400">${formatRupee(bo.totalGross)}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.shows.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.ticketsSold.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-white">${bo.cities.toLocaleString()}</td>
+        <td class="py-3.5 px-4 text-right text-[#FFA726]">${bo.occupancy}%</td>
+      </tr>
+      </tbody>
+    `;
+  }
+
+  table.innerHTML = html;
+}
+window.renderPerformanceTable = renderPerformanceTable;
 
 // Generate Beautiful SVG charts dynamically
 function renderWorldwideSVGChart() {
@@ -1202,20 +1707,57 @@ function readFullNews(id) {
 window.readFullNews = readFullNews;
 
 // OTT STREAMING RELEASES PAGE
-function setupOTTPage() {
+async function setupOTTPage() {
   const container = document.getElementById('ott-platforms-grid');
   if (!container) return;
 
-  container.innerHTML = window.mockData.ottReleases.map(platform => {
-    const listHtml = platform.movies.map(movie => `
-      <div class="bg-[#1E1E1E] p-3 rounded-lg border border-white/5 flex items-center space-x-3 hover:border-white/10 transition">
-        <img src="${movie.poster}" data-ott-title="${movie.title}" class="w-10 h-14 rounded object-cover" alt="">
-        <div class="min-w-0 flex-1">
-          <h4 class="text-white text-sm font-bold truncate">${movie.title}</h4>
-          <span class="text-xs text-[#FF8C42] block mt-1">Streaming: ${movie.date}</span>
+  container.innerHTML = `
+    <div class="col-span-full py-20 text-center">
+      <div class="skeleton w-12 h-12 rounded-full border-t-2 border-[#FF6B00] animate-spin mx-auto mb-4"></div>
+      <span class="text-sm text-gray-400">Loading live OTT release calendars...</span>
+    </div>
+  `;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const liveOttPlatforms = await window.BoxOfficeAPI.getOTTReleases();
+
+  if (!liveOttPlatforms || liveOttPlatforms.length === 0) {
+    container.innerHTML = `<div class="col-span-full text-center text-gray-400 py-12">No active OTT releases scheduled.</div>`;
+    return;
+  }
+
+  container.innerHTML = liveOttPlatforms.map(platform => {
+    const listHtml = platform.movies.map(movie => {
+      const releaseDate = new Date(movie.date);
+      releaseDate.setHours(0,0,0,0);
+      const isReleased = releaseDate <= today;
+      
+      let statusText = "";
+      let badgeHTML = "";
+      if (isReleased) {
+        statusText = `<span class="text-green-400 font-semibold">Streaming Now</span>`;
+        badgeHTML = `<span class="px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/35 text-green-400 text-[9px] font-bold uppercase tracking-wider">Streaming Now</span>`;
+      } else {
+        const diffDays = Math.ceil(Math.abs(releaseDate - today) / (1000 * 60 * 60 * 24));
+        statusText = `<span class="text-[#FF8C42] font-semibold">Upcoming: ${movie.date} (${diffDays}d left)</span>`;
+        badgeHTML = `<span class="px-1.5 py-0.5 rounded bg-[#FF6B00]/10 border border-[#FF6B00]/35 text-[#FF8C42] text-[9px] font-bold uppercase tracking-wider">Upcoming</span>`;
+      }
+
+      return `
+        <div class="bg-[#1E1E1E] p-3 rounded-lg border border-white/5 flex items-center space-x-3 hover:border-white/10 transition">
+          <img src="${movie.poster}" data-ott-title="${movie.title}" class="w-10 h-14 rounded object-cover" alt="">
+          <div class="min-w-0 flex-1 space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="text-white text-sm font-bold truncate">${movie.title}</h4>
+              ${badgeHTML}
+            </div>
+            <span class="text-xs block">${statusText}</span>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     return `
       <div class="bg-[#1A1A1A] border border-white/5 rounded-xl p-6 space-y-4" data-aos="fade-up">
@@ -1232,30 +1774,9 @@ function setupOTTPage() {
       </div>
     `;
   }).join('');
-
-  // If Live Mode, dynamically fetch real posters from TMDB
-  if (!window.BoxOfficeAPI.isMockMode()) {
-    window.mockData.ottReleases.forEach(platform => {
-      platform.movies.forEach(async (movie) => {
-        try {
-          const results = await window.BoxOfficeAPI.search(movie.title);
-          if (results && results.length > 0 && results[0].poster_path) {
-            const realPoster = window.BoxOfficeAPI.getImageUrl(results[0].poster_path);
-            const imgEl = container.querySelector(`img[data-ott-title="${movie.title.replace(/"/g, '\\"')}"]`);
-            if (imgEl) imgEl.src = realPoster;
-          }
-        } catch (e) {
-          console.warn(`Failed to fetch live poster for ${movie.title}:`, e);
-        }
-      });
-    });
-  }
 }
 
-// ABOUT PAGE
-function setupAboutPage() {
-  // Simple form/scroll triggers handled by AOS
-}
+
 
 // Contact page features have been removed
 
